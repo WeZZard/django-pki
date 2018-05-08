@@ -5,9 +5,6 @@ from ..models import PrivateKey
 
 
 class PrivateKeyAdmin(ModelAdmin):
-    add_form_template = 'admin/private_key/add.html'
-    change_form_template = 'admin/private_key/change.html'
-
     form = PrivateKeyAdminForm
 
     list_display = (

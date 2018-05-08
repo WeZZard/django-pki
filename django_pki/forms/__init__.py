@@ -1,1 +1,2 @@
 from .private_key_admin_form import PrivateKeyAdminForm
+from .public_key_admin_form import PublicKeyAdminForm

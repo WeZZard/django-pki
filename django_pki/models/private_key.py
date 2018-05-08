@@ -2,6 +2,8 @@ from typing import Optional
 from typing import Any
 
 from django.db.models import Model
+from django.db.models import ForeignKey
+from django.db.models import CASCADE
 from django.db.models.fields import CharField
 from django.db.models.fields import BooleanField
 from django.db.models.fields import BinaryField
@@ -103,7 +105,7 @@ class PrivateKey(Model):
     )
 
     def has_paired_public_key(self) -> bool:
-        return False
+        return self.public_key.exists()
 
     has_paired_public_key.boolean = True
     has_paired_public_key.short_description = 'Has Paired Public Key'
@@ -127,6 +129,7 @@ class PrivateKey(Model):
             )
 
     # Converting between cryptography object and model object
+
     @staticmethod
     def get_primitive_private_key(
             encoding: Encoding,
@@ -181,6 +184,7 @@ supported now.'
         )
 
     # Validation
+
     def clean(self):
         encryption_schema = self.encryption_schema
         key_size = self.key_size
@@ -244,7 +248,7 @@ supported now.'
         private_key.format = key_format
         private_key.passphrase = passphrase
 
-        private_key.update_derived_data_if_needed(
+        private_key.update_derived_data(
             encryption_schema=encryption_schema,
             key_size=key_size,
             elliptic_curve=elliptic_curve,
@@ -273,88 +277,51 @@ supported now.'
         finally:
             return True, None
 
-    @staticmethod
-    def _satisfies_key_bytes_updating(
-            encryption_schema: Optional[EncryptionSchema],
-            key_size: Optional[PrivateKeySize],
-            elliptic_curve: Optional[EllipticCurve],
-            encoding: Optional[Encoding],
-            key_format: Optional[PrivateFormat]
-    ) -> bool:
-        return encryption_schema is not None \
-            and (key_size is not None) != (elliptic_curve is not None) \
-            and encoding is not None \
-            and key_format is not None
-
-    def _needs_update_key_bytes(
+    def re_encrypt_key_bytes_if_needed(
             self,
-            encryption_schema: EncryptionSchema,
-            key_size: Optional[PrivateKeySize],
-            elliptic_curve: Optional[EllipticCurve],
-            encoding: Encoding,
-            key_format: PrivateFormat
+            old_passphrase: Optional[str],
+            new_passphrase: Optional[str]
     ) -> bool:
-        return encryption_schema != self.encryption_schema \
-            and key_size != self.key_size \
-            and elliptic_curve != self.elliptic_curve \
-            and encoding != self.encoding \
-            and key_format != self.format
+        if old_passphrase != new_passphrase:
+            print('Re-encrypting...')
 
-    def update_derived_data_if_needed(
+            re_encrypted_key_bytes = \
+                self.to_primitive_private_key_bytes(
+                    old_passphrase,
+                    new_passphrase
+                )
+            self.key_bytes = re_encrypted_key_bytes
+            encrypted = not (
+                new_passphrase is None or len(new_passphrase) == 0
+            )
+            self.is_encrypted = encrypted
+            return True
+        else:
+            return False
+
+    def update_derived_data(
             self,
             encryption_schema: Optional[EncryptionSchema],
             key_size: Optional[PrivateKeySize],
             elliptic_curve: Optional[EllipticCurve],
             encoding: Optional[Encoding],
             key_format: Optional[PrivateFormat],
-            old_passphrase: Optional[str],
-            new_passphrase: Optional[str],
-            is_enforced: bool
-    ) -> bool:
-        if is_enforced or (
-            self._satisfies_key_bytes_updating(
-                encryption_schema=encryption_schema,
-                key_size=key_size,
-                elliptic_curve=elliptic_curve,
-                encoding=encoding,
-                key_format=key_format
-            ) and self._needs_update_key_bytes(
-                encryption_schema=encryption_schema,
-                key_size=key_size,
-                elliptic_curve=elliptic_curve,
-                encoding=encoding,
-                key_format=key_format
-            )
-        ):
-            assert not self.has_paired_public_key()
+            new_passphrase: Optional[str]
+    ):
+        print('Updating derived data...')
 
-            self.key_bytes = PrivateKey.make_key_bytes(
-                encryption_schema=encryption_schema,
-                key_size=key_size,
-                elliptic_curve=elliptic_curve,
-                encoding=encoding,
-                key_format=key_format,
-                passphrase=new_passphrase
-            )
+        assert not self.has_paired_public_key()
 
-            self.is_encrypted = new_passphrase is not None
+        self.key_bytes = PrivateKey.make_key_bytes(
+            encryption_schema=encryption_schema,
+            key_size=key_size,
+            elliptic_curve=elliptic_curve,
+            encoding=encoding,
+            key_format=key_format,
+            passphrase=new_passphrase
+        )
 
-            return True
-        else:
-            if old_passphrase != new_passphrase:
-                re_encrypted_key_bytes = \
-                    self.to_primitive_private_key_bytes(
-                        old_passphrase,
-                        new_passphrase
-                    )
-                self.key_bytes = re_encrypted_key_bytes
-                encrypted = not (
-                    new_passphrase is None or len(new_passphrase) == 0
-                )
-                self.is_encrypted = encrypted
-                return True
-
-        return False
+        self.is_encrypted = new_passphrase is not None
 
     @classmethod
     def make_key_bytes(
@@ -418,4 +385,36 @@ supported now.'
             raise ValueError(
                 'Invalid passphrase. "{p}" shall be ``None`` or type of \
 ``str``.'.format(p=passphrase)
+            )
+
+    def __str__(self) -> str:
+        name: str = self.key_name
+        encoding: str = self.encoding
+        key_format: str = self.format
+        if self.encryption_schema == EncryptionSchema.RSA:
+            key_size: str = self.key_size
+            return "{name}: <{schema}, {key_size}> {encoding}, {format}".format(
+                name=name,
+                schema=self.encryption_schema,
+                key_size=key_size,
+                encoding=encoding,
+                format=key_format
+            )
+        if self.encryption_schema == EncryptionSchema.DSA:
+            key_size: str = self.key_size
+            return "{name}: <{schema}, {key_size}> {encoding}, {format}".format(
+                name=name,
+                schema=self.encryption_schema,
+                key_size=key_size,
+                encoding=encoding,
+                format=key_format
+            )
+        if self.encryption_schema == EncryptionSchema.EC:
+            curve: str = self.elliptic_curve
+            return "{name}: <{schema}, {curve}> {encoding}, {format}".format(
+                name=name,
+                schema=self.encryption_schema,
+                curve=curve,
+                encoding=encoding,
+                format=key_format
             )
