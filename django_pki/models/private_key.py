@@ -28,6 +28,7 @@ from ..common import Encoding
 class PrivateKey(Model):
     # Fields
     key_name: CharField = CharField(
+        unique=True,
         name='key_name',
         max_length=256,
         verbose_name='Name',
