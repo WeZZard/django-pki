@@ -1,10 +1,15 @@
 from typing import List
+from typing import Iterable
+from typing import Callable
+from typing import Tuple
 from typing import Optional
+from typing import Any
 from typing import Type
 
 from enumfields import Enum
 
 from ..common.elliptic_curve_oids import *
+
 
 # Shell script generates the members
 #
@@ -15,283 +20,297 @@ from ..common.elliptic_curve_oids import *
 #     sub("[[:space:]]+", "", FINE_STRING)
 #     split(FINE_STRING, COMPONENTS, "[[:space:]]*:[[:space:]]*");
 #     NAME=COMPONENTS[1]
-#     VALUE=COMPONENTS[1]
 #     gsub("-","_",NAME)
 #     NAME=toupper(NAME)
-#     print NAME" = \""VALUE"\""
+#     print NAME" = \""NAME"\""
 #   }
 # }'
 #
 class EllipticCurve(Enum):
-    SECP112R1 = "secp112r1"
-    SECP112R2 = "secp112r2"
-    SECP128R1 = "secp128r1"
-    SECP128R2 = "secp128r2"
-    SECP160K1 = "secp160k1"
-    SECP160R1 = "secp160r1"
-    SECP160R2 = "secp160r2"
-    SECP192K1 = "secp192k1"
-    SECP224K1 = "secp224k1"
-    SECP224R1 = "secp224r1"
-    SECP256K1 = "secp256k1"
-    SECP384R1 = "secp384r1"
-    SECP521R1 = "secp521r1"
-    PRIME192V1 = "prime192v1"
-    PRIME192V2 = "prime192v2"
-    PRIME192V3 = "prime192v3"
-    PRIME239V1 = "prime239v1"
-    PRIME239V2 = "prime239v2"
-    PRIME239V3 = "prime239v3"
-    PRIME256V1 = "prime256v1"
-    SECT113R1 = "sect113r1"
-    SECT113R2 = "sect113r2"
-    SECT131R1 = "sect131r1"
-    SECT131R2 = "sect131r2"
-    SECT163K1 = "sect163k1"
-    SECT163R1 = "sect163r1"
-    SECT163R2 = "sect163r2"
-    SECT193R1 = "sect193r1"
-    SECT193R2 = "sect193r2"
-    SECT233K1 = "sect233k1"
-    SECT233R1 = "sect233r1"
-    SECT239K1 = "sect239k1"
-    SECT283K1 = "sect283k1"
-    SECT283R1 = "sect283r1"
-    SECT409K1 = "sect409k1"
-    SECT409R1 = "sect409r1"
-    SECT571K1 = "sect571k1"
-    SECT571R1 = "sect571r1"
-    C2PNB163V1 = "c2pnb163v1"
-    C2PNB163V2 = "c2pnb163v2"
-    C2PNB163V3 = "c2pnb163v3"
-    C2PNB176V1 = "c2pnb176v1"
-    C2TNB191V1 = "c2tnb191v1"
-    C2TNB191V2 = "c2tnb191v2"
-    C2TNB191V3 = "c2tnb191v3"
-    C2PNB208W1 = "c2pnb208w1"
-    C2TNB239V1 = "c2tnb239v1"
-    C2TNB239V2 = "c2tnb239v2"
-    C2TNB239V3 = "c2tnb239v3"
-    C2PNB272W1 = "c2pnb272w1"
-    C2PNB304W1 = "c2pnb304w1"
-    C2TNB359V1 = "c2tnb359v1"
-    C2PNB368W1 = "c2pnb368w1"
-    C2TNB431R1 = "c2tnb431r1"
-    WAP_WSG_IDM_ECID_WTLS1 = "wap-wsg-idm-ecid-wtls1"
-    WAP_WSG_IDM_ECID_WTLS3 = "wap-wsg-idm-ecid-wtls3"
-    WAP_WSG_IDM_ECID_WTLS4 = "wap-wsg-idm-ecid-wtls4"
-    WAP_WSG_IDM_ECID_WTLS5 = "wap-wsg-idm-ecid-wtls5"
-    WAP_WSG_IDM_ECID_WTLS6 = "wap-wsg-idm-ecid-wtls6"
-    WAP_WSG_IDM_ECID_WTLS7 = "wap-wsg-idm-ecid-wtls7"
-    WAP_WSG_IDM_ECID_WTLS8 = "wap-wsg-idm-ecid-wtls8"
-    WAP_WSG_IDM_ECID_WTLS9 = "wap-wsg-idm-ecid-wtls9"
-    WAP_WSG_IDM_ECID_WTLS10 = "wap-wsg-idm-ecid-wtls10"
-    WAP_WSG_IDM_ECID_WTLS11 = "wap-wsg-idm-ecid-wtls11"
-    WAP_WSG_IDM_ECID_WTLS12 = "wap-wsg-idm-ecid-wtls12"
-    BRAINPOOLP160R1 = "brainpoolP160r1"
-    BRAINPOOLP160T1 = "brainpoolP160t1"
-    BRAINPOOLP192R1 = "brainpoolP192r1"
-    BRAINPOOLP192T1 = "brainpoolP192t1"
-    BRAINPOOLP224R1 = "brainpoolP224r1"
-    BRAINPOOLP224T1 = "brainpoolP224t1"
-    BRAINPOOLP256R1 = "brainpoolP256r1"
-    BRAINPOOLP256T1 = "brainpoolP256t1"
-    BRAINPOOLP320R1 = "brainpoolP320r1"
-    BRAINPOOLP320T1 = "brainpoolP320t1"
-    BRAINPOOLP384R1 = "brainpoolP384r1"
-    BRAINPOOLP384T1 = "brainpoolP384t1"
-    BRAINPOOLP512R1 = "brainpoolP512r1"
-    BRAINPOOLP512T1 = "brainpoolP512t1"
-    FRP256V1 = "FRP256v1"
-    ID_GOSTR3410_2001_TESTPARAMSET = "id-GostR3410-2001-TestParamSet"
-    ID_GOSTR3410_2001_CRYPTOPRO_A_PARAMSET = "id-GostR3410-2001-CryptoPro-A-ParamSet"
-    ID_GOSTR3410_2001_CRYPTOPRO_B_PARAMSET = "id-GostR3410-2001-CryptoPro-B-ParamSet"
-    ID_GOSTR3410_2001_CRYPTOPRO_C_PARAMSET = "id-GostR3410-2001-CryptoPro-C-ParamSet"
-    ID_GOSTR3410_2001_CRYPTOPRO_XCHA_PARAMSET = "id-GostR3410-2001-CryptoPro-XchA-ParamSet"
-    ID_GOSTR3410_2001_CRYPTOPRO_XCHB_PARAMSET = "id-GostR3410-2001-CryptoPro-XchB-ParamSet"
-    ID_TC26_GOST_3410_2012_512_PARAMSETA = "id-tc26-gost-3410-2012-512-paramSetA"
-    ID_TC26_GOST_3410_2012_512_PARAMSETB = "id-tc26-gost-3410-2012-512-paramSetB"
+    SECP112R1 = "SECP112R1"
+    SECP112R2 = "SECP112R2"
+    SECP128R1 = "SECP128R1"
+    SECP128R2 = "SECP128R2"
+    SECP160K1 = "SECP160K1"
+    SECP160R1 = "SECP160R1"
+    SECP160R2 = "SECP160R2"
+    SECP192K1 = "SECP192K1"
+    SECP224K1 = "SECP224K1"
+    SECP224R1 = "SECP224R1"
+    SECP256K1 = "SECP256K1"
+    SECP384R1 = "SECP384R1"
+    SECP521R1 = "SECP521R1"
+    PRIME192V1 = "PRIME192V1"
+    PRIME192V2 = "PRIME192V2"
+    PRIME192V3 = "PRIME192V3"
+    PRIME239V1 = "PRIME239V1"
+    PRIME239V2 = "PRIME239V2"
+    PRIME239V3 = "PRIME239V3"
+    PRIME256V1 = "PRIME256V1"
+    SECT113R1 = "SECT113R1"
+    SECT113R2 = "SECT113R2"
+    SECT131R1 = "SECT131R1"
+    SECT131R2 = "SECT131R2"
+    SECT163K1 = "SECT163K1"
+    SECT163R1 = "SECT163R1"
+    SECT163R2 = "SECT163R2"
+    SECT193R1 = "SECT193R1"
+    SECT193R2 = "SECT193R2"
+    SECT233K1 = "SECT233K1"
+    SECT233R1 = "SECT233R1"
+    SECT239K1 = "SECT239K1"
+    SECT283K1 = "SECT283K1"
+    SECT283R1 = "SECT283R1"
+    SECT409K1 = "SECT409K1"
+    SECT409R1 = "SECT409R1"
+    SECT571K1 = "SECT571K1"
+    SECT571R1 = "SECT571R1"
+    C2PNB163V1 = "C2PNB163V1"
+    C2PNB163V2 = "C2PNB163V2"
+    C2PNB163V3 = "C2PNB163V3"
+    C2PNB176V1 = "C2PNB176V1"
+    C2TNB191V1 = "C2TNB191V1"
+    C2TNB191V2 = "C2TNB191V2"
+    C2TNB191V3 = "C2TNB191V3"
+    C2PNB208W1 = "C2PNB208W1"
+    C2TNB239V1 = "C2TNB239V1"
+    C2TNB239V2 = "C2TNB239V2"
+    C2TNB239V3 = "C2TNB239V3"
+    C2PNB272W1 = "C2PNB272W1"
+    C2PNB304W1 = "C2PNB304W1"
+    C2TNB359V1 = "C2TNB359V1"
+    C2PNB368W1 = "C2PNB368W1"
+    C2TNB431R1 = "C2TNB431R1"
+    WAP_WSG_IDM_ECID_WTLS1 = "WAP_WSG_IDM_ECID_WTLS1"
+    WAP_WSG_IDM_ECID_WTLS3 = "WAP_WSG_IDM_ECID_WTLS3"
+    WAP_WSG_IDM_ECID_WTLS4 = "WAP_WSG_IDM_ECID_WTLS4"
+    WAP_WSG_IDM_ECID_WTLS5 = "WAP_WSG_IDM_ECID_WTLS5"
+    WAP_WSG_IDM_ECID_WTLS6 = "WAP_WSG_IDM_ECID_WTLS6"
+    WAP_WSG_IDM_ECID_WTLS7 = "WAP_WSG_IDM_ECID_WTLS7"
+    WAP_WSG_IDM_ECID_WTLS8 = "WAP_WSG_IDM_ECID_WTLS8"
+    WAP_WSG_IDM_ECID_WTLS9 = "WAP_WSG_IDM_ECID_WTLS9"
+    WAP_WSG_IDM_ECID_WTLS10 = "WAP_WSG_IDM_ECID_WTLS10"
+    WAP_WSG_IDM_ECID_WTLS11 = "WAP_WSG_IDM_ECID_WTLS11"
+    WAP_WSG_IDM_ECID_WTLS12 = "WAP_WSG_IDM_ECID_WTLS12"
+    BRAINPOOLP160R1 = "BRAINPOOLP160R1"
+    BRAINPOOLP160T1 = "BRAINPOOLP160T1"
+    BRAINPOOLP192R1 = "BRAINPOOLP192R1"
+    BRAINPOOLP192T1 = "BRAINPOOLP192T1"
+    BRAINPOOLP224R1 = "BRAINPOOLP224R1"
+    BRAINPOOLP224T1 = "BRAINPOOLP224T1"
+    BRAINPOOLP256R1 = "BRAINPOOLP256R1"
+    BRAINPOOLP256T1 = "BRAINPOOLP256T1"
+    BRAINPOOLP320R1 = "BRAINPOOLP320R1"
+    BRAINPOOLP320T1 = "BRAINPOOLP320T1"
+    BRAINPOOLP384R1 = "BRAINPOOLP384R1"
+    BRAINPOOLP384T1 = "BRAINPOOLP384T1"
+    BRAINPOOLP512R1 = "BRAINPOOLP512R1"
+    BRAINPOOLP512T1 = "BRAINPOOLP512T1"
+    FRP256V1 = "FRP256V1"
+    ID_GOSTR3410_2001_TESTPARAMSET = "ID_GOSTR3410_2001_TESTPARAMSET"
+    ID_GOSTR3410_2001_CRYPTOPRO_A_PARAMSET = "ID_GOSTR3410_2001_CRYPTOPRO_A_PARAMSET"
+    ID_GOSTR3410_2001_CRYPTOPRO_B_PARAMSET = "ID_GOSTR3410_2001_CRYPTOPRO_B_PARAMSET"
+    ID_GOSTR3410_2001_CRYPTOPRO_C_PARAMSET = "ID_GOSTR3410_2001_CRYPTOPRO_C_PARAMSET"
+    ID_GOSTR3410_2001_CRYPTOPRO_XCHA_PARAMSET = "ID_GOSTR3410_2001_CRYPTOPRO_XCHA_PARAMSET"
+    ID_GOSTR3410_2001_CRYPTOPRO_XCHB_PARAMSET = "ID_GOSTR3410_2001_CRYPTOPRO_XCHB_PARAMSET"
+    ID_TC26_GOST_3410_2012_512_PARAMSETA = "ID_TC26_GOST_3410_2012_512_PARAMSETA"
+    ID_TC26_GOST_3410_2012_512_PARAMSETB = "ID_TC26_GOST_3410_2012_512_PARAMSETB"
 
     @property
-    def name(self) -> str:
-        return self.value
+    def curve_name(self) -> str:
+        return self.get_oid_type()().__getattribute__('name')
 
+    #
+    # openssl ecparam -list_curves | awk '
+    # {
+    #   if (match($0, ":") && !match($0, "Oakley-EC2N-[[:digit:]]")) {
+    #     FINE_STRING=$0
+    #     sub("[[:space:]]+", "", FINE_STRING)
+    #     split(FINE_STRING, COMPONENTS, "[[:space:]]*:[[:space:]]*");
+    #     NAME=COMPONENTS[1]
+    #     gsub("-","_",NAME)
+    #     NAME=toupper(NAME)
+    #     print "	if self == type(self)."NAME": \
+    # 		return "NAME
+    #   }
+    # }'
+    #
     def get_oid_type(self) -> Type[object]:
-        if self == EllipticCurve.SECP112R1:
+        if self == type(self).SECP112R1:
             return SECP112R1
-        if self == EllipticCurve.SECP112R2:
+        if self == type(self).SECP112R2:
             return SECP112R2
-        if self == EllipticCurve.SECP128R1:
+        if self == type(self).SECP128R1:
             return SECP128R1
-        if self == EllipticCurve.SECP128R2:
+        if self == type(self).SECP128R2:
             return SECP128R2
-        if self == EllipticCurve.SECP160K1:
+        if self == type(self).SECP160K1:
             return SECP160K1
-        if self == EllipticCurve.SECP160R1:
+        if self == type(self).SECP160R1:
             return SECP160R1
-        if self == EllipticCurve.SECP160R2:
+        if self == type(self).SECP160R2:
             return SECP160R2
-        if self == EllipticCurve.SECP192K1:
+        if self == type(self).SECP192K1:
             return SECP192K1
-        if self == EllipticCurve.SECP224K1:
+        if self == type(self).SECP224K1:
             return SECP224K1
-        if self == EllipticCurve.SECP224R1:
+        if self == type(self).SECP224R1:
             return SECP224R1
-        if self == EllipticCurve.SECP256K1:
+        if self == type(self).SECP256K1:
             return SECP256K1
-        if self == EllipticCurve.SECP384R1:
+        if self == type(self).SECP384R1:
             return SECP384R1
-        if self == EllipticCurve.SECP521R1:
+        if self == type(self).SECP521R1:
             return SECP521R1
-        if self == EllipticCurve.PRIME192V1:
+        if self == type(self).PRIME192V1:
             return PRIME192V1
-        if self == EllipticCurve.PRIME192V2:
+        if self == type(self).PRIME192V2:
             return PRIME192V2
-        if self == EllipticCurve.PRIME192V3:
+        if self == type(self).PRIME192V3:
             return PRIME192V3
-        if self == EllipticCurve.PRIME239V1:
+        if self == type(self).PRIME239V1:
             return PRIME239V1
-        if self == EllipticCurve.PRIME239V2:
+        if self == type(self).PRIME239V2:
             return PRIME239V2
-        if self == EllipticCurve.PRIME239V3:
+        if self == type(self).PRIME239V3:
             return PRIME239V3
-        if self == EllipticCurve.PRIME256V1:
+        if self == type(self).PRIME256V1:
             return PRIME256V1
-        if self == EllipticCurve.SECT113R1:
+        if self == type(self).SECT113R1:
             return SECT113R1
-        if self == EllipticCurve.SECT113R2:
+        if self == type(self).SECT113R2:
             return SECT113R2
-        if self == EllipticCurve.SECT131R1:
+        if self == type(self).SECT131R1:
             return SECT131R1
-        if self == EllipticCurve.SECT131R2:
+        if self == type(self).SECT131R2:
             return SECT131R2
-        if self == EllipticCurve.SECT163K1:
+        if self == type(self).SECT163K1:
             return SECT163K1
-        if self == EllipticCurve.SECT163R1:
+        if self == type(self).SECT163R1:
             return SECT163R1
-        if self == EllipticCurve.SECT163R2:
+        if self == type(self).SECT163R2:
             return SECT163R2
-        if self == EllipticCurve.SECT193R1:
+        if self == type(self).SECT193R1:
             return SECT193R1
-        if self == EllipticCurve.SECT193R2:
+        if self == type(self).SECT193R2:
             return SECT193R2
-        if self == EllipticCurve.SECT233K1:
+        if self == type(self).SECT233K1:
             return SECT233K1
-        if self == EllipticCurve.SECT233R1:
+        if self == type(self).SECT233R1:
             return SECT233R1
-        if self == EllipticCurve.SECT239K1:
+        if self == type(self).SECT239K1:
             return SECT239K1
-        if self == EllipticCurve.SECT283K1:
+        if self == type(self).SECT283K1:
             return SECT283K1
-        if self == EllipticCurve.SECT283R1:
+        if self == type(self).SECT283R1:
             return SECT283R1
-        if self == EllipticCurve.SECT409K1:
+        if self == type(self).SECT409K1:
             return SECT409K1
-        if self == EllipticCurve.SECT409R1:
+        if self == type(self).SECT409R1:
             return SECT409R1
-        if self == EllipticCurve.SECT571K1:
+        if self == type(self).SECT571K1:
             return SECT571K1
-        if self == EllipticCurve.SECT571R1:
+        if self == type(self).SECT571R1:
             return SECT571R1
-        if self == EllipticCurve.C2PNB163V1:
+        if self == type(self).C2PNB163V1:
             return C2PNB163V1
-        if self == EllipticCurve.C2PNB163V2:
+        if self == type(self).C2PNB163V2:
             return C2PNB163V2
-        if self == EllipticCurve.C2PNB163V3:
+        if self == type(self).C2PNB163V3:
             return C2PNB163V3
-        if self == EllipticCurve.C2PNB176V1:
+        if self == type(self).C2PNB176V1:
             return C2PNB176V1
-        if self == EllipticCurve.C2TNB191V1:
+        if self == type(self).C2TNB191V1:
             return C2TNB191V1
-        if self == EllipticCurve.C2TNB191V2:
+        if self == type(self).C2TNB191V2:
             return C2TNB191V2
-        if self == EllipticCurve.C2TNB191V3:
+        if self == type(self).C2TNB191V3:
             return C2TNB191V3
-        if self == EllipticCurve.C2PNB208W1:
+        if self == type(self).C2PNB208W1:
             return C2PNB208W1
-        if self == EllipticCurve.C2TNB239V1:
+        if self == type(self).C2TNB239V1:
             return C2TNB239V1
-        if self == EllipticCurve.C2TNB239V2:
+        if self == type(self).C2TNB239V2:
             return C2TNB239V2
-        if self == EllipticCurve.C2TNB239V3:
+        if self == type(self).C2TNB239V3:
             return C2TNB239V3
-        if self == EllipticCurve.C2PNB272W1:
+        if self == type(self).C2PNB272W1:
             return C2PNB272W1
-        if self == EllipticCurve.C2PNB304W1:
+        if self == type(self).C2PNB304W1:
             return C2PNB304W1
-        if self == EllipticCurve.C2TNB359V1:
+        if self == type(self).C2TNB359V1:
             return C2TNB359V1
-        if self == EllipticCurve.C2PNB368W1:
+        if self == type(self).C2PNB368W1:
             return C2PNB368W1
-        if self == EllipticCurve.C2TNB431R1:
+        if self == type(self).C2TNB431R1:
             return C2TNB431R1
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS1:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS1:
             return WAP_WSG_IDM_ECID_WTLS1
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS3:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS3:
             return WAP_WSG_IDM_ECID_WTLS3
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS4:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS4:
             return WAP_WSG_IDM_ECID_WTLS4
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS5:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS5:
             return WAP_WSG_IDM_ECID_WTLS5
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS6:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS6:
             return WAP_WSG_IDM_ECID_WTLS6
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS7:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS7:
             return WAP_WSG_IDM_ECID_WTLS7
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS8:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS8:
             return WAP_WSG_IDM_ECID_WTLS8
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS9:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS9:
             return WAP_WSG_IDM_ECID_WTLS9
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS10:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS10:
             return WAP_WSG_IDM_ECID_WTLS10
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS11:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS11:
             return WAP_WSG_IDM_ECID_WTLS11
-        if self == EllipticCurve.WAP_WSG_IDM_ECID_WTLS12:
+        if self == type(self).WAP_WSG_IDM_ECID_WTLS12:
             return WAP_WSG_IDM_ECID_WTLS12
-        if self == EllipticCurve.BRAINPOOLP160R1:
+        if self == type(self).BRAINPOOLP160R1:
             return BRAINPOOLP160R1
-        if self == EllipticCurve.BRAINPOOLP160T1:
+        if self == type(self).BRAINPOOLP160T1:
             return BRAINPOOLP160T1
-        if self == EllipticCurve.BRAINPOOLP192R1:
+        if self == type(self).BRAINPOOLP192R1:
             return BRAINPOOLP192R1
-        if self == EllipticCurve.BRAINPOOLP192T1:
+        if self == type(self).BRAINPOOLP192T1:
             return BRAINPOOLP192T1
-        if self == EllipticCurve.BRAINPOOLP224R1:
+        if self == type(self).BRAINPOOLP224R1:
             return BRAINPOOLP224R1
-        if self == EllipticCurve.BRAINPOOLP224T1:
+        if self == type(self).BRAINPOOLP224T1:
             return BRAINPOOLP224T1
-        if self == EllipticCurve.BRAINPOOLP256R1:
+        if self == type(self).BRAINPOOLP256R1:
             return BRAINPOOLP256R1
-        if self == EllipticCurve.BRAINPOOLP256T1:
+        if self == type(self).BRAINPOOLP256T1:
             return BRAINPOOLP256T1
-        if self == EllipticCurve.BRAINPOOLP320R1:
+        if self == type(self).BRAINPOOLP320R1:
             return BRAINPOOLP320R1
-        if self == EllipticCurve.BRAINPOOLP320T1:
+        if self == type(self).BRAINPOOLP320T1:
             return BRAINPOOLP320T1
-        if self == EllipticCurve.BRAINPOOLP384R1:
+        if self == type(self).BRAINPOOLP384R1:
             return BRAINPOOLP384R1
-        if self == EllipticCurve.BRAINPOOLP384T1:
+        if self == type(self).BRAINPOOLP384T1:
             return BRAINPOOLP384T1
-        if self == EllipticCurve.BRAINPOOLP512R1:
+        if self == type(self).BRAINPOOLP512R1:
             return BRAINPOOLP512R1
-        if self == EllipticCurve.BRAINPOOLP512T1:
+        if self == type(self).BRAINPOOLP512T1:
             return BRAINPOOLP512T1
-        if self == EllipticCurve.FRP256V1:
+        if self == type(self).FRP256V1:
             return FRP256V1
-        if self == EllipticCurve.ID_GOSTR3410_2001_TESTPARAMSET:
+        if self == type(self).ID_GOSTR3410_2001_TESTPARAMSET:
             return ID_GOSTR3410_2001_TESTPARAMSET
-        if self == EllipticCurve.ID_GOSTR3410_2001_CRYPTOPRO_A_PARAMSET:
+        if self == type(self).ID_GOSTR3410_2001_CRYPTOPRO_A_PARAMSET:
             return ID_GOSTR3410_2001_CRYPTOPRO_A_PARAMSET
-        if self == EllipticCurve.ID_GOSTR3410_2001_CRYPTOPRO_B_PARAMSET:
+        if self == type(self).ID_GOSTR3410_2001_CRYPTOPRO_B_PARAMSET:
             return ID_GOSTR3410_2001_CRYPTOPRO_B_PARAMSET
-        if self == EllipticCurve.ID_GOSTR3410_2001_CRYPTOPRO_C_PARAMSET:
+        if self == type(self).ID_GOSTR3410_2001_CRYPTOPRO_C_PARAMSET:
             return ID_GOSTR3410_2001_CRYPTOPRO_C_PARAMSET
-        if self == EllipticCurve.ID_GOSTR3410_2001_CRYPTOPRO_XCHA_PARAMSET:
+        if self == type(self).ID_GOSTR3410_2001_CRYPTOPRO_XCHA_PARAMSET:
             return ID_GOSTR3410_2001_CRYPTOPRO_XCHA_PARAMSET
-        if self == EllipticCurve.ID_GOSTR3410_2001_CRYPTOPRO_XCHB_PARAMSET:
+        if self == type(self).ID_GOSTR3410_2001_CRYPTOPRO_XCHB_PARAMSET:
             return ID_GOSTR3410_2001_CRYPTOPRO_XCHB_PARAMSET
-        if self == EllipticCurve.ID_TC26_GOST_3410_2012_512_PARAMSETA:
+        if self == type(self).ID_TC26_GOST_3410_2012_512_PARAMSETA:
             return ID_TC26_GOST_3410_2012_512_PARAMSETA
-        if self == EllipticCurve.ID_TC26_GOST_3410_2012_512_PARAMSETB:
+        if self == type(self).ID_TC26_GOST_3410_2012_512_PARAMSETB:
             return ID_TC26_GOST_3410_2012_512_PARAMSETB
         raise ValueError()
 
@@ -386,6 +405,13 @@ class EllipticCurve(Enum):
             cls.get_all_elliptic_curves()
         ))
 
+    @classmethod
+    def get_available_elliptic_curve_choices(cls) -> List[Tuple[str, str]]:
+        return [
+            (each_elliptic_curve.value, each_elliptic_curve.label)
+            for each_elliptic_curve in cls.get_available_elliptic_curves()
+        ]
+
     # Shell script generates the members
     #
     # openssl ecparam -list_curves | awk '
@@ -395,9 +421,9 @@ class EllipticCurve(Enum):
     #     sub("[[:space:]]+", "", FINE_STRING)
     #     split(FINE_STRING, COMPONENTS, "[[:space:]]*:[[:space:]]*");
     #     NAME=COMPONENTS[1]
+    #     NAME=toupper(NAME)
     #     VALUE=COMPONENTS[1]
     #     gsub("-","_",NAME)
-    #     NAME=toupper(NAME)
     #     print NAME" = \""VALUE": "COMPONENTS[2]"\""
     #   }
     # }'
@@ -497,4 +523,4 @@ def load_curve_types():
     from cryptography.hazmat.primitives.asymmetric import ec
     for each_available_curve in EllipticCurve.get_available_elliptic_curves():
         curve_type = each_available_curve.get_oid_type()
-        ec._CURVE_TYPES[each_available_curve.name] = curve_type
+        ec._CURVE_TYPES[each_available_curve.curve_name] = curve_type
