@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.db.models import Model
 from django.db.models import OneToOneField
 from django.db.models import CASCADE
