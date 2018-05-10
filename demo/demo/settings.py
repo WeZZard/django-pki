@@ -31,7 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django_pki.apps.DjangoPkiConfig',
+    'django_pki_manager.apps.DjangoPkiManagerConfig',
     'bootstrap4',
     'django.contrib.admin',
     'django.contrib.auth',
