@@ -24,6 +24,12 @@ class Encoding(Enum):
             return serialization.Encoding.OpenSSH
         raise ValueError('Unexpected encoding: {e}.'.format(e=self))
 
+    @classmethod
+    def get_all_encodings(cls) -> List['Encoding']:
+        ret_val: List['Encoding'] = [cls.PEM, cls.DER, cls.OPEN_SSH]
+        return ret_val
+
+    # Private Key Available Encodings
     def get_private_key_serializer(
             self
     ) -> Optional[Callable[[Any, Any, Any], Any]]:
@@ -37,14 +43,9 @@ class Encoding(Enum):
         return self.get_private_key_serializer() is not None
 
     @classmethod
-    def get_all_encodings(cls) -> List['Encoding']:
-        ret_val: List['Encoding'] = [cls.PEM, cls.DER, cls.OPEN_SSH]
-        return ret_val
-
-    @classmethod
     def get_available_private_key_encodings(cls) -> List['Encoding']:
         return list(filter(
-            lambda x: x.is_available_for_serializing_private_key(),
+            lambda e: e.is_available_for_serializing_private_key(),
             cls.get_all_encodings()
         ))
 
@@ -57,6 +58,38 @@ class Encoding(Enum):
             for each_encoding in cls.get_available_private_key_encodings()
         ]
 
+    # Public Key Available Encodings
+    def get_public_key_serializer(
+            self
+    ) -> Optional[Callable[[Any, Any, Any], Any]]:
+        if self == Encoding.PEM:
+            return serialization.load_pem_public_key
+        if self == Encoding.DER:
+            return serialization.load_der_public_key
+        if self == Encoding.OPEN_SSH:
+            return serialization.load_ssh_public_key
+        return None
+
+    def is_available_for_serializing_public_key(self) -> bool:
+        return self.get_public_key_serializer() is not None
+
+    @classmethod
+    def get_available_public_key_encodings(cls) -> List['Encoding']:
+        return list(filter(
+            lambda e: e.is_available_for_serializing_public_key(),
+            cls.get_all_encodings()
+        ))
+
+    @classmethod
+    def get_available_public_key_encoding_choices(
+            cls
+    ) -> Iterable[Tuple[str, str]]:
+        return [
+            (each_encoding.value, each_encoding.label)
+            for each_encoding in cls.get_available_public_key_encodings()
+        ]
+
+    # Labels
     class Labels:
         PEM = "PEM"
         DER = "DER"

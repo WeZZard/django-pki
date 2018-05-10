@@ -2,8 +2,6 @@ from typing import Optional
 from typing import Any
 
 from django.db.models import Model
-from django.db.models import ForeignKey
-from django.db.models import CASCADE
 from django.db.models.fields import CharField
 from django.db.models.fields import BooleanField
 from django.db.models.fields import BinaryField
@@ -105,7 +103,7 @@ class PrivateKey(Model):
     )
 
     def has_paired_public_key(self) -> bool:
-        return self.public_key.exists()
+        return hasattr(self, 'public_key')
 
     has_paired_public_key.boolean = True
     has_paired_public_key.short_description = 'Has Paired Public Key'
@@ -128,42 +126,49 @@ class PrivateKey(Model):
                 'Invalid encryption schema: %s.' % encryption_schema.name
             )
 
-    # Converting between cryptography object and model object
+    # Helper
+    def is_passphrase_valid(
+            self,
+            passphrase: Optional[str]
+    ) -> (bool, Optional[Exception]):
+        assert passphrase is None or isinstance(passphrase, str)
+        passphrase_bytes = None if passphrase is None \
+            else passphrase.encode('utf-8')
 
-    @staticmethod
-    def get_primitive_private_key(
+        try:
+            _ = self.to_primitive_private_key(password=passphrase_bytes)
+        except Exception as error:
+            return False, error
+        finally:
+            return True, None
+
+    # Getting Primitive Public Key
+
+    def to_primitive_public_key(self, password: Optional[str]) -> Any:
+        primitive_private_key = self.to_primitive_private_key(password)
+        return primitive_private_key.public_key()
+
+    def to_primitive_public_key_bytes(
+            self,
             encoding: Encoding,
-            data: bytes,
-            decrypt_password: Optional[bytes]
-    ) -> Any:
-        assert isinstance(encoding, Encoding)
-        assert isinstance(data, bytes)
-        assert decrypt_password is None or isinstance(decrypt_password, bytes)
+            key_format: PrivateFormat,
+            password: Optional[str]
+    ) -> bytes:
+        public_key = self.to_primitive_public_key(password=password)
+        return public_key.public_bytes(
+            encoding=encoding.get_serialization_object(),
+            format=key_format.get_serialization_object()
+        )
 
-        password = None \
-            if decrypt_password is None or len(decrypt_password) == 0 \
-            else decrypt_password
-
-        backend = default_backend()
-        if encoding == Encoding.DER:
-            return load_der_private_key(data, password, backend)
-        if encoding == Encoding.PEM:
-            key = load_pem_private_key(data, password, backend)
-            return key
-        if encoding == Encoding.OPEN_SSH:
-            assert NotImplementedError(
-                'Loading private key which encoded with Open SSH is not \
-supported now.'
-            )
+    # Getting Primitive Private Key
 
     def to_primitive_private_key(self, password: Optional[str]) -> Any:
         encoding: Encoding = self.encoding
         key_bytes: bytes = self.key_bytes
-        password_bytes: bytes = password.encode('utf-8')
         return self.get_primitive_private_key(
             encoding=encoding,
             data=key_bytes,
-            decrypt_password=password_bytes
+            decrypt_password=password
         )
 
     def to_primitive_private_key_bytes(
@@ -254,74 +259,38 @@ supported now.'
             elliptic_curve=elliptic_curve,
             encoding=key_encoding,
             key_format=key_format,
-            old_passphrase=None,
             new_passphrase=passphrase,
-            is_enforced=True
         )
         
         return private_key
 
     # Utilities
-    def is_passphrase_valid(
-            self,
-            passphrase: Optional[str]
-    ) -> (bool, Optional[Exception]):
-        assert passphrase is None or isinstance(passphrase, str)
-        passphrase_bytes = None if passphrase is None \
-            else passphrase.encode('utf-8')
 
-        try:
-            _ = self.to_primitive_private_key(password=passphrase_bytes)
-        except Exception as error:
-            return False, error
-        finally:
-            return True, None
+    @staticmethod
+    def get_primitive_private_key(
+            encoding: Encoding,
+            data: bytes,
+            decrypt_password: Optional[str]
+    ) -> Any:
+        assert isinstance(encoding, Encoding)
+        assert isinstance(data, bytes)
+        assert decrypt_password is None or isinstance(decrypt_password, str)
 
-    def re_encrypt_key_bytes_if_needed(
-            self,
-            old_passphrase: Optional[str],
-            new_passphrase: Optional[str]
-    ) -> bool:
-        if old_passphrase != new_passphrase:
-            print('Re-encrypting...')
+        password: bytes = None \
+            if decrypt_password is None or len(decrypt_password) == 0 \
+            else decrypt_password.encode('utf-8')
 
-            re_encrypted_key_bytes = \
-                self.to_primitive_private_key_bytes(
-                    old_passphrase,
-                    new_passphrase
-                )
-            self.key_bytes = re_encrypted_key_bytes
-            encrypted = not (
-                new_passphrase is None or len(new_passphrase) == 0
+        backend = default_backend()
+        if encoding == Encoding.DER:
+            return load_der_private_key(data, password, backend)
+        if encoding == Encoding.PEM:
+            key = load_pem_private_key(data, password, backend)
+            return key
+        if encoding == Encoding.OPEN_SSH:
+            assert NotImplementedError(
+                'Loading private key which encoded with Open SSH is not \
+supported now.'
             )
-            self.is_encrypted = encrypted
-            return True
-        else:
-            return False
-
-    def update_derived_data(
-            self,
-            encryption_schema: Optional[EncryptionSchema],
-            key_size: Optional[PrivateKeySize],
-            elliptic_curve: Optional[EllipticCurve],
-            encoding: Optional[Encoding],
-            key_format: Optional[PrivateFormat],
-            new_passphrase: Optional[str]
-    ):
-        print('Updating derived data...')
-
-        assert not self.has_paired_public_key()
-
-        self.key_bytes = PrivateKey.make_key_bytes(
-            encryption_schema=encryption_schema,
-            key_size=key_size,
-            elliptic_curve=elliptic_curve,
-            encoding=encoding,
-            key_format=key_format,
-            passphrase=new_passphrase
-        )
-
-        self.is_encrypted = new_passphrase is not None
 
     @classmethod
     def make_key_bytes(
@@ -389,32 +358,4 @@ supported now.'
 
     def __str__(self) -> str:
         name: str = self.key_name
-        encoding: str = self.encoding
-        key_format: str = self.format
-        if self.encryption_schema == EncryptionSchema.RSA:
-            key_size: str = self.key_size
-            return "{name}: <{schema}, {key_size}> {encoding}, {format}".format(
-                name=name,
-                schema=self.encryption_schema,
-                key_size=key_size,
-                encoding=encoding,
-                format=key_format
-            )
-        if self.encryption_schema == EncryptionSchema.DSA:
-            key_size: str = self.key_size
-            return "{name}: <{schema}, {key_size}> {encoding}, {format}".format(
-                name=name,
-                schema=self.encryption_schema,
-                key_size=key_size,
-                encoding=encoding,
-                format=key_format
-            )
-        if self.encryption_schema == EncryptionSchema.EC:
-            curve: str = self.elliptic_curve
-            return "{name}: <{schema}, {curve}> {encoding}, {format}".format(
-                name=name,
-                schema=self.encryption_schema,
-                curve=curve,
-                encoding=encoding,
-                format=key_format
-            )
+        return name

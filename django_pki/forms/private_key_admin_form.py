@@ -1,5 +1,6 @@
 from typing import Dict
 from typing import Set
+from typing import Optional
 
 from django.forms import ModelForm
 from django.forms.fields import CharField
@@ -17,8 +18,6 @@ from ..common import PrivateKeySize
 
 
 class PrivateKeyAdminForm(ModelForm):
-    _is_newly_created: bool
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._is_newly_created = kwargs.get('instance') is None
@@ -98,56 +97,97 @@ class PrivateKeyAdminForm(ModelForm):
     def clean(self) -> Dict[str, str]:
         data = super().clean()
 
+        private_key: PrivateKey = self.instance
+
         # Validate old passphrase
-        self._validate_old_passphrase(data=data)
+        is_old_passphrase_valid = self._validate_old_passphrase_is_valid(
+            private_key=private_key,
+            data=data
+        )
 
         # Validate passphrase
-        self._validate_passphrase(data=data)
+        is_passphrase_ensured = self._validate_passphrase_ensured(data=data)
+
+        if is_old_passphrase_valid and is_passphrase_ensured:
+            if self._is_newly_created or self._needs_update_derived_data:
+
+                encryption_schema = data.get('encryption_schema')
+                key_size = data.get('key_size')
+                elliptic_curve = data.get('elliptic_curve')
+                key_encoding = data.get('encoding')
+                key_format = data.get('format')
+                passphrase = data.get('passphrase')
+
+                try:
+                    key_bytes: bytes = PrivateKey.make_key_bytes(
+                        encryption_schema=encryption_schema,
+                        key_size=key_size,
+                        elliptic_curve=elliptic_curve,
+                        encoding=key_encoding,
+                        key_format=key_format,
+                        passphrase=passphrase
+                    )
+
+                    is_encrypted = len(passphrase) > 0
+
+                    data['_key_bytes'] = key_bytes
+                    data['_is_encrypted'] = is_encrypted
+                except Exception as error:
+                    self.add_error(field=None, error=error)
+
+            else:
+                old_passphrase = data.get('old_passphrase')
+                passphrase = data.get('passphrase')
+
+                if self._needs_re_encrypt_key_bytes(
+                        old_passphrase=old_passphrase,
+                        new_passphrase=passphrase
+                ):
+                    try:
+                        key_bytes = private_key.to_primitive_private_key_bytes(
+                            old_passphrase,
+                            passphrase
+                        )
+
+                        is_encrypted = len(passphrase) > 0
+
+                        data['_key_bytes'] = key_bytes
+                        data['_is_encrypted'] = is_encrypted
+                    except Exception as error:
+                        self.add_error(field=None, error=error)
 
         return data
 
     def save(self, commit=True) -> PrivateKey:
         private_key: PrivateKey = self.instance
 
-        old_passphrase = self['old_passphrase'].value()
-        passphrase = self['passphrase'].value()
-        redundant_passphrase = self['redundant_passphrase'].value()
+        key_bytes: Optional[bytes] = self.cleaned_data.get('_key_bytes')
+        is_encrypted: Optional[bool] = self.cleaned_data.get('_is_encrypted')
 
-        # Fetching data from stored private key
-        encryption_schema: EncryptionSchema = private_key.encryption_schema
-        key_size: PrivateKeySize = private_key.key_size
-        elliptic_curve: EllipticCurve = private_key.elliptic_curve
-        key_encoding: Encoding = private_key.encoding
-        key_format: PrivateFormat = private_key.format
+        if key_bytes is not None:
+            private_key.key_bytes = key_bytes
 
-        # Data validity assertions
-        assert (self._is_newly_created and old_passphrase is None) \
-            or not self._is_newly_created
-        assert passphrase == redundant_passphrase
-        assert (key_size is None) is not (elliptic_curve is None)
+        if is_encrypted is not None:
+            private_key.is_encrypted = is_encrypted
 
-        needs_update_derived_data = len(
+        return super().save(commit=commit)
+
+    @property
+    def _needs_update_derived_data(self) -> bool:
+        return len(
             set(self.changed_data).intersection(
-                self._derived_data_dependent_data
+                set(self._derived_data_dependent_data)
             )
         ) > 0
 
-        if needs_update_derived_data or self._is_newly_created:
-            private_key.update_derived_data(
-                encryption_schema=encryption_schema,
-                key_size=key_size,
-                elliptic_curve=elliptic_curve,
-                encoding=key_encoding,
-                key_format=key_format,
-                new_passphrase=passphrase
-            )
-        else:
-            private_key.re_encrypt_key_bytes_if_needed(
-                old_passphrase=old_passphrase,
-                new_passphrase=passphrase
-            )
+    @staticmethod
+    def _needs_re_encrypt_key_bytes(
+            old_passphrase: Optional[str],
+            new_passphrase: Optional[str]
+    ) -> bool:
+        return old_passphrase != new_passphrase
 
-        return super().save(commit=commit)
+    _is_newly_created: bool
 
     _derived_data_dependent_data: Set[str] = {
         'encryption_schema',
@@ -159,17 +199,21 @@ class PrivateKeyAdminForm(ModelForm):
 
     # Validations
 
-    def _validate_old_passphrase(self, data: Dict[str, str]):
+    def _validate_old_passphrase_is_valid(
+            self,
+            private_key: PrivateKey,
+            data: Dict[str, str]
+    ) -> bool:
         old_passphrase = data.get('old_passphrase')
         if self._is_newly_created:
             if len(old_passphrase) > 0:
                 self.add_error(
                     field='old_passphrase',
-                    error='Old passphrase is unavailable for newly'
+                    error='Old passphrase is unnecessary for newly'
                           ' created private key.'
                 )
+            return True
         else:
-            private_key: PrivateKey = self.instance
             (is_passphrase_valid, error) = private_key.is_passphrase_valid(
                 old_passphrase
             )
@@ -178,8 +222,11 @@ class PrivateKeyAdminForm(ModelForm):
                     field='old_passphrase',
                     error='Incorrect old passphrase: %s' % error
                 )
+                return False
+            else:
+                return True
 
-    def _validate_passphrase(self, data: Dict[str, str]):
+    def _validate_passphrase_ensured(self, data: Dict[str, str]) -> bool:
         passphrase = data.get('passphrase')
         redundant_passphrase = data.get('redundant_passphrase')
 
@@ -188,6 +235,9 @@ class PrivateKeyAdminForm(ModelForm):
                 field='redundant_passphrase',
                 error='Two passphrases shall be the same.'
             )
+            return False
+        else:
+            return True
 
     class Meta:
         model = PrivateKey

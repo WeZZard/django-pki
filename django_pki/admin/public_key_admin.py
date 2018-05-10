@@ -5,33 +5,28 @@ from ..models import PublicKey
 
 
 class PublicKeyAdmin(ModelAdmin):
-    list_display = (
-        'key_name',
-        'encryption_schema',
-        'encryption_schema_details',
-        'encoding',
-        'format',
-        'is_encrypted',
-    )
+    form = PublicKeyAdminForm
+
+    list_display = ('key_name', 'encoding', 'format',)
 
     def get_fields(self, request, obj: PublicKey=None):
         if obj:
-            return ('key_name', 'private_key') \
-                + self._private_key_derived_fields
+            return ('key_name', 'passphrase') \
+                + self._private_key_fields \
+                + self._public_key_fields
         else:
-            return 'private_key',
+            return ('private_key', 'passphrase') + self._public_key_fields
 
     def get_readonly_fields(self, request, obj: PublicKey=None):
         if obj:
-            return self.get_fields(request=request, obj=obj)
+            return ('key_name', ) + self._private_key_fields
         else:
             return ()
 
-    _private_key_derived_fields = (
-        'encryption_schema',
-        'key_size',
-        'elliptic_curve',
-        'encoding',
-        'format',
-        'is_encrypted',
+    _public_key_fields = ('encoding', 'format',)
+
+    _private_key_fields = (
+        'private_key_encryption_schema',
+        'private_key_size',
+        'private_key_elliptic_curve',
     )

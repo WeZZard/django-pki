@@ -29,6 +29,6 @@ class PublicFormat(Enum):
         return ret_val
 
     class Labels:
-        SUBJECT_PUBLIC_KEY_INFO = "X.509 subjectPublicKeyInfo with PKCS#1"
+        SUBJECT_PUBLIC_KEY_INFO = "X.509 Subject Public Key Info with PKCS#1"
         PKCS1 = "Raw PKCS#1"
         OPEN_SSH = "Open SSH"

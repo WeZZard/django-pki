@@ -1,89 +1,78 @@
 from typing import Optional
-from typing import Any
 
 from django.db.models import Model
-from django.db.models import ForeignKey
+from django.db.models import OneToOneField
 from django.db.models import CASCADE
-from django.db.models import SET
-from django.db.models import SET_NULL
-from django.db.models import SET_DEFAULT
-from django.db.models import PROTECT
-from django.db.models.fields import CharField
-from django.db.models.fields import BooleanField
 from django.db.models.fields import BinaryField
-from django.core.exceptions import ValidationError
 
 from enumfields import EnumField
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric import dsa
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.serialization import NoEncryption
-from cryptography.hazmat.primitives.serialization import BestAvailableEncryption
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
-from cryptography.hazmat.primitives.serialization import load_der_private_key
-
-from ..common import EncryptionSchema
-from ..common import PrivateKeySize
-from ..common import EllipticCurve
-from ..common import PrivateFormat
 from ..common import Encoding
+from ..common import PublicFormat
 
 from ..models import PrivateKey
 
 
 class PublicKey(Model):
-    private_key: ForeignKey = ForeignKey(
+    private_key: OneToOneField = OneToOneField(
         to=PrivateKey,
         related_name='public_key',
-        on_delete=CASCADE, 
-        null=False
+        on_delete=CASCADE,
     )
     
     def key_name(self) -> str:
-        return self.private_key.name
+        private_key: PrivateKey = self.private_key
+        name: str = private_key.key_name
+        return name
     
     key_name.short_description = 'Name'
     key_name.help_text = 'The public key\'s name (The same to the paired ' \
                          'private key).'
 
-    def encryption_schema(self) -> EncryptionSchema:
+    def private_key_encryption_schema(self) -> str:
         private_key: PrivateKey = self.private_key
-        encryption_schema: EncryptionSchema = private_key.encryption_schema
-        return encryption_schema
+        return private_key.encryption_schema.__str__()
 
-    def key_size(self) -> PrivateKeySize:
-        private_key: PrivateKey = self.private_key
-        key_size: PrivateKeySize = private_key.key_size
-        return key_size
+    private_key_encryption_schema.short_description = \
+        'Private Key Encryption Schema'
 
-    def elliptic_curve(self) -> EllipticCurve:
+    def private_key_size(self) -> str:
         private_key: PrivateKey = self.private_key
-        elliptic_curve: EllipticCurve = private_key.elliptic_curve
-        return elliptic_curve
+        if private_key.key_size is None:
+            return '------'
+        else:
+            return private_key.key_size.__str__()
 
-    def encoding(self) -> Encoding:
-        private_key: PrivateKey = self.private_key
-        encoding: Encoding = private_key.encoding
-        return encoding
+    private_key_size.short_description = 'Private Key Size'
 
-    def format(self) -> PrivateFormat:
+    def private_key_elliptic_curve(self) -> str:
         private_key: PrivateKey = self.private_key
-        key_format: PrivateFormat = private_key.format
-        return key_format
+        if private_key.elliptic_curve is None:
+            return '------'
+        else:
+            return private_key.elliptic_curve.__str__()
 
-    def is_encrypted(self) -> bool:
-        private_key: PrivateKey = self.private_key
-        is_encrypted: bool = private_key.is_encrypted
-        return is_encrypted
-    is_encrypted.boolean = True
+    private_key_elliptic_curve.short_description = 'Private Key Elliptic Curve'
 
-    def encryption_schema_details(self) -> str:
-        private_key: PrivateKey = self.private_key
-        details: str = private_key.encryption_schema_details()
-        return details
+    encoding: EnumField = EnumField(
+        Encoding,
+        max_length=1,
+        verbose_name='Encoding',
+        default=Encoding.PEM,
+        help_text='The public key encoding.',
+    )
+
+    format: EnumField = EnumField(
+        PublicFormat,
+        max_length=1,
+        default=PublicFormat.PKCS1,
+        verbose_name='Format',
+        help_text='The public key format.',
+    )
 
     key_bytes: BinaryField = BinaryField()
+
+    def __str__(self) -> str:
+        return self.key_name()
 
     pass
