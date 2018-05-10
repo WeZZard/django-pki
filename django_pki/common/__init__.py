@@ -5,5 +5,6 @@ from .encryption_schema import EncryptionSchema
 from .encoding import Encoding
 from .private_format import PrivateFormat
 from .public_format import PublicFormat
+from .hash_algorithms import HashAlgorithm
 
 _load_curve_types()
